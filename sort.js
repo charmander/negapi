@@ -19,23 +19,16 @@ function getItem(pair) {
 	return pair[1];
 }
 
-function sortByReverse(array, property) {
-	return array
-		.map(function (item) {
-			return [property(item), item];
-		})
-		.sort(comparePropertiesReverse)
-		.map(getItem);
+function sortByComparing(comparison) {
+	return function (array, property) {
+		return array
+			.map(function (item) {
+				return [property(item), item];
+			})
+			.sort(comparison)
+			.map(getItem);
+	};
 }
 
-function sortByUnique(array, property) {
-	return array
-		.map(function (item) {
-			return [property(item), item];
-		})
-		.sort(comparePropertiesUnique)
-		.map(getItem);
-}
-
-exports.byReverse = sortByReverse;
-exports.byUnique = sortByUnique;
+exports.byReverse = sortByComparing(comparePropertiesReverse);
+exports.byUnique = sortByComparing(comparePropertiesUnique);
