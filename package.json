@@ -1,0 +1,18 @@
+{
+	"name": "negapi",
+	"version": "1.0.0",
+	"description": "content type negotiation",
+	"keywords": ["http", "content negotiation", "accept"],
+	"bugs": {
+		"url": "https://github.com/charmander/negapi/issues"
+	},
+	"license": "ISC",
+	"files": ["index.js", "sort.js"],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/charmander/negapi"
+	},
+	"devDependencies": {
+		"tap": "^7.1.2"
+	}
+}
