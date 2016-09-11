@@ -101,10 +101,11 @@ Object.defineProperty(MediaType.prototype, 'get', {
 	},
 });
 
-function MediaRange(type, subtype, parameters, weight) {
+function MediaRange(type, subtype, parameters, parameterCount, weight) {
 	this.type = type.toLowerCase();
 	this.subtype = subtype.toLowerCase();
 	this.parameters = parameters;
+	this.parameterCount = parameterCount;
 	this.weight = weight;
 }
 
@@ -116,14 +117,14 @@ Object.defineProperty(MediaRange.prototype, 'specificity', {
 			this.type !== '*' ? 1 :
 			0;
 
-		return typeSpecificity + this.parameters.length;
+		return typeSpecificity + this.parameterCount;
 	},
 });
 
 function MediaTypeSet(types) {
 	this._ranges = Object.create(null);
 	this._sortedParameterNames = [];
-	this._parameterNames = new Set();
+	this._parameterNames = Object.create(null);
 	this.types = [];
 	types.forEach(this.append, this);
 }
@@ -176,7 +177,9 @@ Object.defineProperty(MediaTypeSet.prototype, 'append', {
 			parameterNames
 		);
 
-		parameterNames.forEach(this._parameterNames.add, this._parameterNames);
+		parameterNames.forEach(function (parameterName) {
+			this[parameterName] = true;
+		}, this._parameterNames);
 	},
 });
 
@@ -184,33 +187,27 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 	configurable: true,
 	writable: true,
 	value: function (range) {
-		if (range.parameters.length >= 32) {
+		if (range.parameterCount >= 32) {
 			return [];
 		}
 
 		var parameters = range.parameters;
-		var parameterMap = Object.create(null);
-		var parameterNames = this._parameterNames;
-		var i;
+		var setParameterNames = this._parameterNames;
 
-		for (i = 0; i < parameters.length; i++) {
-			var parameter = parameters[i];
-
-			if (!parameterNames.has(parameter.name)) {
+		for (var rangeName in parameters) {
+			if (!(rangeName in setParameterNames)) {
 				return [];
 			}
-
-			parameterMap[parameter.name] = parameter.value;
 		}
 
-		var sortedParameterNames = this._sortedParameterNames;
+		var setParameterNameList = this._sortedParameterNames;
 		var key = range.type + '\0' + range.subtype;
 
-		for (i = 0; i < sortedParameterNames.length; i++) {
-			var parameterName = sortedParameterNames[i];
+		for (var i = 0; i < setParameterNameList.length; i++) {
+			var setName = setParameterNameList[i];
 
-			if (parameterName in parameterMap) {
-				key += '\0' + parameterName + '\0' + parameterMap[parameterName];
+			if (setName in parameters) {
+				key += '\0' + setName + '\0' + parameters[setName];
 			}
 		}
 
@@ -219,7 +216,7 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 });
 
 function parseTypeParameter(typeParameter) {
-	var match = typeParameter.match(/^[\t ]*([!#$%&'*+\-.^_`|~0-9A-Za-z]+)=(?:([!#$%&'*+\-.^_`|~0-9A-Za-z]+)|"((?:[\t !\x23-\x5b\x5d-\x7e]|\\[\t -~])*)")[\t ]*$/);
+	var match = /^[\t ]*([!#$%&'*+\-.^_`|~0-9A-Za-z]+)=(?:([!#$%&'*+\-.^_`|~0-9A-Za-z]+)|"((?:[\t !\x23-\x5b\x5d-\x7e]|\\[\t -~])*)")[\t ]*$/.exec(typeParameter);
 
 	if (match === null) {
 		return null;
@@ -237,7 +234,7 @@ function parseTypeParameter(typeParameter) {
 
 function parseAcceptRange(range) {
 	var parts = range.split(';');
-	var match = parts[0].match(/^[\t ]*(\*(?=\/\*)|[!#$%&'+\-.^_`|~0-9A-Za-z]+)\/(\*|[!#$%&'+\-.^_`|~0-9A-Za-z]+)[\t ]*$/);
+	var match = /^[\t ]*(\*(?=\/\*)|[!#$%&'+\-.^_`|~0-9A-Za-z]+)\/(\*|[!#$%&'+\-.^_`|~0-9A-Za-z]+)[\t ]*$/.exec(parts[0]);
 
 	if (match === null) {
 		return null;
@@ -245,8 +242,8 @@ function parseAcceptRange(range) {
 
 	var type = match[1].toLowerCase();
 	var subtype = match[2].toLowerCase();
-	var parameters = [];
-	var parameterMap = Object.create(null);
+	var parameters = Object.create(null);
+	var parameterCount = 0;
 	var weight = 1;
 
 	for (var i = 1; i < parts.length; i++) {
@@ -266,17 +263,17 @@ function parseAcceptRange(range) {
 			break;
 		}
 
-		if (parameter.name in parameterMap) {
-			if (parameterMap[parameter.name] !== parameter.value) {
+		if (parameter.name in parameters) {
+			if (parameters[parameter.name] !== parameter.value) {
 				return null;
 			}
 		} else {
-			parameters.push(parameter);
-			parameterMap[parameter.name] = parameter.value;
+			parameters[parameter.name] = parameter.value;
+			parameterCount++;
 		}
 	}
 
-	return new MediaRange(type, subtype, parameters, weight);
+	return new MediaRange(type, subtype, parameters, parameterCount, weight);
 }
 
 function parseAccept(accept) {
