@@ -2,10 +2,6 @@
 
 var sort = require('./sort');
 
-function isNull(x) {
-	return x === null;
-}
-
 function hasNonOptionalWhitespace(s) {
 	return /[^\t ]/.test(s);
 }
@@ -277,11 +273,23 @@ function parseAcceptRange(range) {
 }
 
 function parseAccept(accept) {
-	var ranges = accept.split(',')
-		.filter(hasNonOptionalWhitespace)
-		.map(parseAcceptRange);
+	var parts = accept.split(',');
+	var ranges = [];
 
-	return ranges.length === 0 || ranges.some(isNull) ?
+	for (var i = 0; i < parts.length; i++) {
+		var part = parts[i];
+		var range = parseAcceptRange(part);
+
+		if (range === null) {
+			if (hasNonOptionalWhitespace(part)) {
+				return null;
+			}
+		} else {
+			ranges.push(range);
+		}
+	}
+
+	return ranges.length === 0 ?
 		null :
 		ranges;
 }
