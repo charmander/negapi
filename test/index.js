@@ -61,6 +61,7 @@ tap.test('select', function (t) {
 
 	t.test('accepts an empty header', function (t) {
 		t.is(negapi.select(new negapi.MediaTypeSet([text]), ''), text);
+		t.is(negapi.select(new negapi.MediaTypeSet([text]), ' '), text);
 		t.end();
 	});
 
@@ -188,6 +189,11 @@ tap.test('select', function (t) {
 	t.test('treats duplicate parameters with different values as invalid', function (t) {
 		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;charset=utf-8;charset=utf-7'), ogg);
 		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;charset=utf-7;charset=utf-8'), ogg);
+		t.end();
+	});
+
+	t.test('is lenient with badly-concatenated lists', function (t) {
+		t.is(negapi.select(new negapi.MediaTypeSet([text, json]), 'application/json,,text/plain;q=0'), json);
 		t.end();
 	});
 
