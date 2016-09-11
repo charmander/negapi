@@ -18,6 +18,40 @@ function getSpecificity(range) {
 	return range.specificity;
 }
 
+function mergeSortedSet(a, b) {
+	var result = [];
+	var ai = 0;
+	var bi = 0;
+	var ac = a[0];
+	var bc = b[0];
+
+	while (ai < a.length && bi < b.length) {
+		if (ac < bc) {
+			result.push(ac);
+			ac = a[++ai];
+		} else if (ac > bc) {
+			result.push(bc);
+			bc = b[++bi];
+		} else {
+			result.push(ac);
+			ac = a[++ai];
+			bc = b[++bi];
+		}
+	}
+
+	while (ai < a.length) {
+		result.push(a[ai]);
+		ai++;
+	}
+
+	while (bi < b.length) {
+		result.push(b[bi]);
+		bi++;
+	}
+
+	return result;
+}
+
 function Parameter(name, value) {
 	this.name = name.toLowerCase();
 	this.value = value.toLowerCase();
@@ -88,6 +122,8 @@ Object.defineProperty(MediaRange.prototype, 'specificity', {
 
 function MediaTypeSet(types) {
 	this._ranges = Object.create(null);
+	this._sortedParameterNames = [];
+	this._parameterNames = new Set();
 	this.types = [];
 	types.forEach(this.append, this);
 }
@@ -132,7 +168,15 @@ Object.defineProperty(MediaTypeSet.prototype, 'append', {
 			}
 		}
 
+		var parameterNames = parameters.map(getName);
+
 		this.types.push(mediaType);
+		this._sortedParameterNames = mergeSortedSet(
+			this._sortedParameterNames,
+			parameterNames
+		);
+
+		parameterNames.forEach(this._parameterNames.add, this._parameterNames);
 	},
 });
 
@@ -144,12 +188,30 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 			return [];
 		}
 
-		var parameters = sort.byUnique(range.parameters, getName);
+		var parameters = range.parameters;
+		var parameterMap = Object.create(null);
+		var parameterNames = this._parameterNames;
+		var i;
+
+		for (i = 0; i < parameters.length; i++) {
+			var parameter = parameters[i];
+
+			if (!parameterNames.has(parameter.name)) {
+				return [];
+			}
+
+			parameterMap[parameter.name] = parameter.value;
+		}
+
+		var sortedParameterNames = this._sortedParameterNames;
 		var key = range.type + '\0' + range.subtype;
 
-		for (var i = 0; i < parameters.length; i++) {
-			var parameter = parameters[i];
-			key += '\0' + parameter.name + '\0' + parameter.value;
+		for (i = 0; i < sortedParameterNames.length; i++) {
+			var parameterName = sortedParameterNames[i];
+
+			if (parameterName in parameterMap) {
+				key += '\0' + parameterName + '\0' + parameterMap[parameterName];
+			}
 		}
 
 		return this._ranges[key] || [];

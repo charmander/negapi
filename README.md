@@ -4,7 +4,7 @@
 
 negapi helps with content negotiation by selecting the most appropriate media type for a response based on a request’s Accept header.
 
-Constructing a media type set takes **exponential space and time** on the highest number of parameters for a type. That number is typically 1, but if something significantly larger is required, this module may not be a good choice. Matching an Accept header against the set takes O(*mn* log *n*) time, where *m* is the number of ranges in the header and *n* is the maximum number of parameters for a range.
+Constructing a media type set takes **exponential space and time** on the highest number of parameters for a type. That number is typically 1, but if something significantly larger is required, this module may not be a good choice. Matching an Accept header against the set takes O(*n* log *n* + *kn*) time, where *n* is the number of ranges in the header and *k* is the number of distinct parameter names in the type set.
 
 
 ## Usage
