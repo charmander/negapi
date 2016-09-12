@@ -183,7 +183,9 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 	configurable: true,
 	writable: true,
 	value: function (range) {
-		if (range.parameterCount >= 32) {
+		var setParameterNameList = this._sortedParameterNames;
+
+		if (range.parameterCount > setParameterNameList.length) {
 			return [];
 		}
 
@@ -196,7 +198,6 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 			}
 		}
 
-		var setParameterNameList = this._sortedParameterNames;
 		var key = range.type + '\0' + range.subtype;
 
 		for (var i = 0; i < setParameterNameList.length; i++) {

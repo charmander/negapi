@@ -79,6 +79,7 @@ tap.test('select', function (t) {
 
 	t.test('returns null if no exact match exists', function (t) {
 		t.is(negapi.select(new negapi.MediaTypeSet([text]), 'text/plain; format=other'), null);
+		t.is(negapi.select(new negapi.MediaTypeSet([ogg]), 'audio/ogg; codecs=opus'), null);
 		t.end();
 	});
 
