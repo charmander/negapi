@@ -4,7 +4,7 @@
 
 negapi helps with content negotiation by selecting the most appropriate media type for a response based on a request’s Accept header.
 
-Constructing a media type set takes **exponential space and time** on the highest number of parameters for a type. That number is typically 1, but if something significantly larger is required, this module may not be a good choice. Matching an Accept header against the set takes O(*n* log *n* + *kn*) time, where *n* is the number of ranges in the header and *k* is the number of distinct parameter names in the type set.
+Constructing a media type set takes **exponential space and time** on the highest number of parameters for a type. That number is typically 0, but if something significantly larger is required, this module may not be a good choice. Matching an Accept header against the set takes O(*n* log *n* + *kn*) time, where *n* is the number of ranges in the header and *k* is the number of distinct parameter names in the type set.
 
 
 ## Usage
@@ -13,7 +13,7 @@ Constructing a media type set takes **exponential space and time** on the highes
 const negapi = require('negapi');
 
 const types = new negapi.MediaTypeSet([
-	new negapi.MediaType('text', 'html', { charset: 'utf-8' }),
+	new negapi.MediaType('text', 'plain', { format: 'flowed' }),
 	new negapi.MediaType('application', 'json'),
 	new negapi.MediaType('image', 'png'),
 ]);
@@ -21,8 +21,8 @@ const types = new negapi.MediaTypeSet([
 const image = negapi.select(types, 'image/*, */*;q=0.5');
 console.log(image.subtype);  // png
 
-const html = negapi.select(types, 'text/html');
-console.log(html.get('charset'));  // utf-8
+const text = negapi.select(types, 'text/plain');
+console.log(text.get('format'));  // flowed
 
 const none = negapi.select(types, '*/*;q=0');
 console.log(none);  // null
@@ -33,7 +33,7 @@ console.log(none);  // null
 
 ### `new MediaType(type, subtype, [parameters])`
 
-Creates a media type with the given type (string), subtype (string), and parameters (object with parameters as properties). In `text/html; charset=utf-8`, the `type` is `'text'`, the `subtype` is `'html'`, and the `parameters` are `{ charset: 'utf-8' }`.
+Creates a media type with the given type (string), subtype (string), and parameters (object with parameters as properties). In `text/plain; format=flowed`, the `type` is `'text'`, the `subtype` is `'plain'`, and the `parameters` are `{ format: 'flowed' }`.
 
 #### `MediaType#type`
 

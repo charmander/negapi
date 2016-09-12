@@ -6,24 +6,24 @@ var negapi = require('../');
 
 tap.test('MediaType#get', function (t) {
 	t.test('returns null for non-existent parameters', function (t) {
-		t.is(new negapi.MediaType('text', 'plain').get('charset'), null);
-		t.is(new negapi.MediaType('text', 'plain', { charset: 'utf-8' }).get('boundary'), null);
+		t.is(new negapi.MediaType('text', 'plain').get('format'), null);
+		t.is(new negapi.MediaType('text', 'plain', { format: 'flowed' }).get('boundary'), null);
 		t.end();
 	});
 
 	t.test('gets parameters by name', function (t) {
-		t.is(new negapi.MediaType('text', 'plain', { charset: 'utf-8' }).get('charset'), 'utf-8');
+		t.is(new negapi.MediaType('text', 'plain', { format: 'flowed' }).get('format'), 'flowed');
 		t.end();
 	});
 
 	t.test('gets parameters by name case-insensitively', function (t) {
-		t.is(new negapi.MediaType('text', 'plain', { charset: 'utf-8' }).get('CHARSET'), 'utf-8');
-		t.is(new negapi.MediaType('text', 'plain', { CHARSET: 'utf-8' }).get('charset'), 'utf-8');
+		t.is(new negapi.MediaType('text', 'plain', { format: 'flowed' }).get('FORMAT'), 'flowed');
+		t.is(new negapi.MediaType('text', 'plain', { FORMAT: 'flowed' }).get('format'), 'flowed');
 		t.end();
 	});
 
 	t.test('returns lowercased values', function (t) {
-		t.is(new negapi.MediaType('text', 'plain', { charset: 'UTF-8' }).get('charset'), 'utf-8');
+		t.is(new negapi.MediaType('text', 'plain', { format: 'FLOWED' }).get('format'), 'flowed');
 		t.end();
 	});
 
@@ -32,15 +32,16 @@ tap.test('MediaType#get', function (t) {
 
 tap.test('select', function (t) {
 	var example = new negapi.MediaType('application', 'prs.example');
-	var html = new negapi.MediaType('text', 'html', { charset: 'utf-8' });
+	var html = new negapi.MediaType('text', 'html');
 	var json = new negapi.MediaType('application', 'json', { foo: '"foo"' });
 	var ogg = new negapi.MediaType('audio', 'ogg');
 	var svg = new negapi.MediaType('image', 'svg+xml');
-	var text = new negapi.MediaType('text', 'plain', { charset: 'utf-8' });
-	var foo = new negapi.MediaType('text', 'x-foo', { a: 'a', b: 'b', c: 'c' });
+	var text = new negapi.MediaType('text', 'plain', { format: 'flowed' });
+	var otherFlowed = new negapi.MediaType('text', 'x-rich', { format: 'flowed' });
+	var foo = new negapi.MediaType('text', 'x-foo', { a: 'a', c: 'c', b: 'b' });
 
 	t.test('accepts exact matches', function (t) {
-		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;charset=utf-8'), text);
+		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;format=flowed'), text);
 		t.end();
 	});
 
@@ -77,7 +78,7 @@ tap.test('select', function (t) {
 	});
 
 	t.test('returns null if no exact match exists', function (t) {
-		t.is(negapi.select(new negapi.MediaTypeSet([text]), 'text/plain; charset=iso-8859-1'), null);
+		t.is(negapi.select(new negapi.MediaTypeSet([text]), 'text/plain; format=other'), null);
 		t.end();
 	});
 
@@ -98,6 +99,7 @@ tap.test('select', function (t) {
 
 	t.test('selects the most preferred server type when the client prefers types equally', function (t) {
 		t.is(negapi.select(new negapi.MediaTypeSet([text, json]), 'application/json, text/plain'), text);
+		t.is(negapi.select(new negapi.MediaTypeSet([json, text]), 'application/json, text/plain'), json);
 		t.end();
 	});
 
@@ -118,12 +120,12 @@ tap.test('select', function (t) {
 	});
 
 	t.test('compares parameter names case-insensitively', function (t) {
-		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/html; CHARSET=utf-8'), html);
+		t.is(negapi.select(new negapi.MediaTypeSet([html, text]), 'text/plain; FORMAT=flowed'), text);
 		t.end();
 	});
 
 	t.test('compares parameter values case-insensitively', function (t) {
-		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/html; charset=UTF-8'), html);
+		t.is(negapi.select(new negapi.MediaTypeSet([html, text]), 'text/plain; format=FLOWED'), text);
 		t.end();
 	});
 
@@ -137,17 +139,17 @@ tap.test('select', function (t) {
 	t.test('determines preference based on the most specific match', function (t) {
 		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/*;q=0, text/html'), html);
 		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/*;q=0, text/html;q=0.001'), html);
-		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/*;q=0, text/html;q=0.001, text/html;charset=utf-8;q=0'), null);
+		t.is(negapi.select(new negapi.MediaTypeSet([html, text]), 'text/*;q=0, text/plain;q=0.001, text/plain;format=flowed;q=0'), null);
 		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/html, text/*;q=0'), html);
 		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/html;q=0.001, text/*;q=0'), html);
-		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/html;charset=utf-8;q=0, text/*;q=0, text/html;q=0.001'), null);
+		t.is(negapi.select(new negapi.MediaTypeSet([html, text]), 'text/plain;format=flowed;q=0, text/*;q=0, text/plain;q=0.001'), null);
 		t.end();
 	});
 
 	t.test('treats parameters and types as equally specific', function (t) {
 		// RFC 7231 doesn’t say how to determine whether one range is more specific than another; here’s a guess
-		t.is(negapi.select(new negapi.MediaTypeSet([text, html]), 'text/html, text/*;charset=utf-8'), text);
-		t.is(negapi.select(new negapi.MediaTypeSet([html, text]), 'text/html, text/*;charset=utf-8'), html);
+		t.is(negapi.select(new negapi.MediaTypeSet([text, otherFlowed]), 'text/plain, text/*;format=flowed'), text);
+		t.is(negapi.select(new negapi.MediaTypeSet([otherFlowed, text]), 'text/plain, text/*;format=flowed'), otherFlowed);
 		t.end();
 	});
 
@@ -182,13 +184,13 @@ tap.test('select', function (t) {
 	});
 
 	t.test('is lenient with duplicate parameters with the same value', function (t) {
-		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;charset=utf-8;charset=utf-8'), text);
+		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;format=flowed;format=flowed'), text);
 		t.end();
 	});
 
 	t.test('treats duplicate parameters with different values as invalid', function (t) {
-		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;charset=utf-8;charset=utf-7'), ogg);
-		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;charset=utf-7;charset=utf-8'), ogg);
+		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;format=flowed;format=other'), ogg);
+		t.is(negapi.select(new negapi.MediaTypeSet([ogg, text]), 'text/plain;format=other;format=flowed'), ogg);
 		t.end();
 	});
 
