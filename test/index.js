@@ -101,6 +101,8 @@ tap.test('select', function (t) {
 	t.test('selects the most preferred server type when the client prefers types equally', function (t) {
 		t.is(negapi.select(new negapi.MediaTypeSet([text, json]), 'application/json, text/plain'), text);
 		t.is(negapi.select(new negapi.MediaTypeSet([json, text]), 'application/json, text/plain'), json);
+		t.is(negapi.select(new negapi.MediaTypeSet([json, text, otherFlowed]), 'text/*'), text);
+		t.is(negapi.select(new negapi.MediaTypeSet([json, otherFlowed, text]), 'text/*'), otherFlowed);
 		t.end();
 	});
 
@@ -147,10 +149,10 @@ tap.test('select', function (t) {
 		t.end();
 	});
 
-	t.test('treats parameters and types as equally specific', function (t) {
-		// RFC 7231 doesn’t say how to determine whether one range is more specific than another; here’s a guess
-		t.is(negapi.select(new negapi.MediaTypeSet([text, otherFlowed]), 'text/plain, text/*;format=flowed'), text);
-		t.is(negapi.select(new negapi.MediaTypeSet([otherFlowed, text]), 'text/plain, text/*;format=flowed'), otherFlowed);
+	t.test('resolves specificity conflicts in favour of the server order', function (t) {
+		// RFC 7231 doesn’t say what to do in this situation or how to determine specificity at all
+		t.is(negapi.select(new negapi.MediaTypeSet([foo]), '*/*;a=a;q=0, */*;b=b'), null);
+		t.is(negapi.select(new negapi.MediaTypeSet([foo]), '*/*;b=b, */*;a=a;q=0'), foo);
 		t.end();
 	});
 
