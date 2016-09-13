@@ -1,7 +1,5 @@
 'use strict';
 
-var sort = require('./sort');
-
 function hasNonOptionalWhitespace(s) {
 	return /[^\t ]/.test(s);
 }
@@ -10,8 +8,12 @@ function getName(parameter) {
 	return parameter.name;
 }
 
-function getSpecificity(range) {
-	return range.specificity;
+function byUniqueName(a, b) {
+	return a.name < b.name ? -1 : 1;
+}
+
+function byReverseSpecificity(a, b) {
+	return b.specificity - a.specificity;
 }
 
 function mergeSortedSet(a, b) {
@@ -98,24 +100,18 @@ Object.defineProperty(MediaType.prototype, 'get', {
 });
 
 function MediaRange(type, subtype, parameters, parameterCount, weight) {
+	var typeSpecificity =
+		subtype !== '*' ? 2 :
+		type !== '*' ? 1 :
+		0;
+
 	this.type = type.toLowerCase();
 	this.subtype = subtype.toLowerCase();
 	this.parameters = parameters;
 	this.parameterCount = parameterCount;
 	this.weight = weight;
+	this.specificity = typeSpecificity + parameterCount;
 }
-
-Object.defineProperty(MediaRange.prototype, 'specificity', {
-	configurable: true,
-	get: function () {
-		var typeSpecificity =
-			this.subtype !== '*' ? 2 :
-			this.type !== '*' ? 1 :
-			0;
-
-		return typeSpecificity + this.parameterCount;
-	},
-});
 
 function MediaTypeSet(types) {
 	this._ranges = Object.create(null);
@@ -131,7 +127,7 @@ Object.defineProperty(MediaTypeSet.prototype, 'append', {
 	value: function (mediaType) {
 		var type = mediaType.type;
 		var subtype = mediaType.subtype;
-		var parameters = sort.byUnique(mediaType.parameters, getName);
+		var parameters = mediaType.parameters.slice().sort(byUniqueName);
 		var ranges = this._ranges;
 
 		if (parameters.length >= 32) {
@@ -317,7 +313,7 @@ function select(typeSet, accept) {
 		return types[0];
 	}
 
-	ranges = sort.byReverse(ranges, getSpecificity);
+	ranges.sort(byReverseSpecificity);
 
 	var weights = new Map();
 
