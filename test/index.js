@@ -39,6 +39,7 @@ tap.test('MediaTypeSet#select', function (t) {
 	var text = new negapi.MediaType('text', 'plain', { format: 'flowed' });
 	var otherFlowed = new negapi.MediaType('text', 'x-rich', { format: 'flowed' });
 	var foo = new negapi.MediaType('text', 'x-foo', { a: 'a', c: 'c', b: 'b' });
+	var separators = new negapi.MediaType('text', 'x-separators', { comma: 'a,b', semicolon: 'a;b' });
 
 	t.test('accepts exact matches', function (t) {
 		t.is(new negapi.MediaTypeSet([ogg, text]).select('text/plain;format=flowed'), text);
@@ -74,6 +75,8 @@ tap.test('MediaTypeSet#select', function (t) {
 
 	t.test('accepts quoted parameters', function (t) {
 		t.is(new negapi.MediaTypeSet([ogg, json]).select('application/json;foo="\\"foo\\""'), json);
+		t.is(new negapi.MediaTypeSet([ogg, separators]).select('text/x-separators;comma="a,b"'), separators);
+		t.is(new negapi.MediaTypeSet([ogg, separators]).select('text/x-separators;semicolon="a;b"'), separators);
 		t.end();
 	});
 
