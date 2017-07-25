@@ -18,13 +18,13 @@ const types = new negapi.MediaTypeSet([
 	new negapi.MediaType('image', 'png'),
 ]);
 
-const image = negapi.select(types, 'image/*, */*;q=0.5');
+const image = types.select('image/*, */*;q=0.5');
 console.log(image.subtype);  // png
 
-const text = negapi.select(types, 'text/plain');
+const text = types.select('text/plain');
 console.log(text.get('format'));  // flowed
 
-const none = negapi.select(types, '*/*;q=0');
+const none = types.select('*/*;q=0');
 console.log(none);  // null
 ```
 
@@ -51,9 +51,9 @@ Gets the lowercase value of a parameter by name, or `null` if the parameter does
 
 Creates a set of media types. `types` is an array of `MediaType`s ordered by descending preference.
 
-### `select(typeSet, accept)`
+### `MediaTypeSet#select(accept)`
 
-Selects the most client-preferred `MediaType` from the `MediaTypeSet` `typeSet`, or `null` if no type is acceptable.
+Selects the most client-preferred `MediaType` of the `MediaTypeSet` according to the provided `Accept` header, or `null` if no type is acceptable.
 
 
   [ci]: https://travis-ci.org/charmander/negapi

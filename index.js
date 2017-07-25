@@ -208,6 +208,61 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 	},
 });
 
+Object.defineProperty(MediaTypeSet.prototype, 'select', {
+	configurable: true,
+	writable: true,
+	value: function (accept) {
+		var types = this.types;
+
+		if (accept == null || accept === '') {
+			return types[0];
+		}
+
+		if (typeof accept !== 'string') {
+			throw new TypeError('Accept header must be a string, null, or undefined');
+		}
+
+		var i;
+		var ranges = parseAccept(accept);
+
+		if (ranges === null) {
+			return types[0];
+		}
+
+		ranges.sort(byReverseSpecificity);
+
+		var weights = new Map();
+
+		for (i = 0; i < ranges.length; i++) {
+			var range = ranges[i];
+			var matches = this.matches(range);
+
+			for (var j = 0; j < matches.length; j++) {
+				var match = matches[j];
+
+				if (!weights.has(match)) {
+					weights.set(match, range.weight);
+				}
+			}
+		}
+
+		var best = null;
+		var bestWeight = 0;
+
+		for (i = 0; i < types.length; i++) {
+			var type = types[i];
+			var weight = weights.get(type);
+
+			if (weight > bestWeight) {
+				best = type;
+				bestWeight = weight;
+			}
+		}
+
+		return best;
+	},
+});
+
 function parseTypeParameter(typeParameter) {
 	var match = /^[\t ]*([!#$%&'*+\-.^_`|~0-9A-Za-z]+)=(?:([!#$%&'*+\-.^_`|~0-9A-Za-z]+)|"((?:[\t !\x23-\x5b\x5d-\x7e]|\\[\t -~])*)")[\t ]*$/.exec(typeParameter);
 
@@ -291,61 +346,5 @@ function parseAccept(accept) {
 		ranges;
 }
 
-function select(typeSet, accept) {
-	if (!(typeSet instanceof MediaTypeSet)) {
-		throw new TypeError('Types must be instance of MediaTypeSet');
-	}
-
-	var types = typeSet.types;
-
-	if (accept == null || accept === '') {
-		return types[0];
-	}
-
-	if (typeof accept !== 'string') {
-		throw new TypeError('Accept header must be a string, null, or undefined');
-	}
-
-	var i;
-	var ranges = parseAccept(accept);
-
-	if (ranges === null) {
-		return types[0];
-	}
-
-	ranges.sort(byReverseSpecificity);
-
-	var weights = new Map();
-
-	for (i = 0; i < ranges.length; i++) {
-		var range = ranges[i];
-		var matches = typeSet.matches(range);
-
-		for (var j = 0; j < matches.length; j++) {
-			var match = matches[j];
-
-			if (!weights.has(match)) {
-				weights.set(match, range.weight);
-			}
-		}
-	}
-
-	var best = null;
-	var bestWeight = 0;
-
-	for (i = 0; i < types.length; i++) {
-		var type = types[i];
-		var weight = weights.get(type);
-
-		if (weight > bestWeight) {
-			best = type;
-			bestWeight = weight;
-		}
-	}
-
-	return best;
-}
-
 exports.MediaType = MediaType;
 exports.MediaTypeSet = MediaTypeSet;
-exports.select = select;
