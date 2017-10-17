@@ -1,8 +1,6 @@
 'use strict';
 
-function hasNonOptionalWhitespace(s) {
-	return /[^\t ]/.test(s);
-}
+var parseAccept = require('./parse-accept');
 
 function getName(parameter) {
 	return parameter.name;
@@ -50,17 +48,15 @@ function mergeSortedSet(a, b) {
 	return result;
 }
 
-function Parameter(name, value) {
-	this.name = name.toLowerCase();
-	this.value = value.toLowerCase();
-}
-
 function MediaType(type, subtype, parameters) {
 	var parameterList = [];
 	var parameterMap = Object.create(null);
 
 	for (var name in parameters) {
-		var parameter = new Parameter(name, parameters[name]);
+		var parameter = {
+			name: name.toLowerCase(),
+			value: parameters[name].toLowerCase(),
+		};
 
 		parameterList.push(parameter);
 		parameterMap[parameter.name] = parameter.value;
@@ -98,20 +94,6 @@ Object.defineProperty(MediaType.prototype, 'get', {
 			value;
 	},
 });
-
-function MediaRange(type, subtype, parameters, parameterCount, weight) {
-	var typeSpecificity =
-		subtype !== '*' ? 2 :
-		type !== '*' ? 1 :
-		0;
-
-	this.type = type.toLowerCase();
-	this.subtype = subtype.toLowerCase();
-	this.parameters = parameters;
-	this.parameterCount = parameterCount;
-	this.weight = weight;
-	this.specificity = typeSpecificity + parameterCount;
-}
 
 function MediaTypeSet(types) {
 	this._ranges = Object.create(null);
@@ -214,7 +196,7 @@ Object.defineProperty(MediaTypeSet.prototype, 'select', {
 	value: function (accept) {
 		var types = this.types;
 
-		if (accept == null || accept === '') {
+		if (accept == null) {
 			return types[0];
 		}
 
@@ -222,16 +204,16 @@ Object.defineProperty(MediaTypeSet.prototype, 'select', {
 			throw new TypeError('Accept header must be a string, null, or undefined');
 		}
 
-		var i;
 		var ranges = parseAccept(accept);
 
-		if (ranges === null) {
+		if (ranges === null || ranges.length === 0) {
 			return types[0];
 		}
 
 		ranges.sort(byReverseSpecificity);
 
 		var weights = new Map();
+		var i;
 
 		for (i = 0; i < ranges.length; i++) {
 			var range = ranges[i];
@@ -262,89 +244,6 @@ Object.defineProperty(MediaTypeSet.prototype, 'select', {
 		return best;
 	},
 });
-
-function parseTypeParameter(typeParameter) {
-	var match = /^[\t ]*([!#$%&'*+\-.^_`|~0-9A-Za-z]+)=(?:([!#$%&'*+\-.^_`|~0-9A-Za-z]+)|"((?:[\t !\x23-\x5b\x5d-\x7e]|\\[\t -~])*)")[\t ]*$/.exec(typeParameter);
-
-	if (match === null) {
-		return null;
-	}
-
-	var name = match[1];
-	var value = match[2];
-
-	if (value === undefined) {
-		value = match[3].replace(/\\(.)/g, '$1');
-	}
-
-	return new Parameter(name, value);
-}
-
-function parseAcceptRange(range) {
-	var parts = range.split(';');
-	var match = /^[\t ]*(\*(?=\/\*)|[!#$%&'+\-.^_`|~0-9A-Za-z]+)\/(\*|[!#$%&'+\-.^_`|~0-9A-Za-z]+)[\t ]*$/.exec(parts[0]);
-
-	if (match === null) {
-		return null;
-	}
-
-	var type = match[1].toLowerCase();
-	var subtype = match[2].toLowerCase();
-	var parameters = Object.create(null);
-	var parameterCount = 0;
-	var weight = 1;
-
-	for (var i = 1; i < parts.length; i++) {
-		var parameter = parseTypeParameter(parts[i]);
-
-		if (parameter === null) {
-			return null;
-		}
-
-		if (parameter.name === 'q') {
-			weight = parseFloat(parameter.value);
-
-			if (!(weight >= 0 && weight <= 1)) {
-				weight = 1;
-			}
-
-			break;
-		}
-
-		if (parameter.name in parameters) {
-			if (parameters[parameter.name] !== parameter.value) {
-				return null;
-			}
-		} else {
-			parameters[parameter.name] = parameter.value;
-			parameterCount++;
-		}
-	}
-
-	return new MediaRange(type, subtype, parameters, parameterCount, weight);
-}
-
-function parseAccept(accept) {
-	var parts = accept.split(',');
-	var ranges = [];
-
-	for (var i = 0; i < parts.length; i++) {
-		var part = parts[i];
-		var range = parseAcceptRange(part);
-
-		if (range === null) {
-			if (hasNonOptionalWhitespace(part)) {
-				return null;
-			}
-		} else {
-			ranges.push(range);
-		}
-	}
-
-	return ranges.length === 0 ?
-		null :
-		ranges;
-}
 
 exports.MediaType = MediaType;
 exports.MediaTypeSet = MediaTypeSet;

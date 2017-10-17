@@ -40,6 +40,7 @@ tap.test('MediaTypeSet#select', function (t) {
 	var otherFlowed = new negapi.MediaType('text', 'x-rich', { format: 'flowed' });
 	var foo = new negapi.MediaType('text', 'x-foo', { a: 'a', c: 'c', b: 'b' });
 	var separators = new negapi.MediaType('text', 'x-separators', { comma: 'a,b', semicolon: 'a;b' });
+	var otherQuoted = new negapi.MediaType('text', 'x-other-quoted', { spaces: ' \t' });
 
 	t.test('accepts exact matches', function (t) {
 		t.is(new negapi.MediaTypeSet([ogg, text]).select('text/plain;format=flowed'), text);
@@ -77,6 +78,9 @@ tap.test('MediaTypeSet#select', function (t) {
 		t.is(new negapi.MediaTypeSet([ogg, json]).select('application/json;foo="\\"foo\\""'), json);
 		t.is(new negapi.MediaTypeSet([ogg, separators]).select('text/x-separators;comma="a,b"'), separators);
 		t.is(new negapi.MediaTypeSet([ogg, separators]).select('text/x-separators;semicolon="a;b"'), separators);
+		t.is(new negapi.MediaTypeSet([ogg, otherQuoted]).select('text/x-other-quoted;spaces=" \t"'), otherQuoted);
+		t.is(new negapi.MediaTypeSet([ogg, otherQuoted]).select('text/x-other-quoted;spaces="\\ \\\t"'), otherQuoted);
+		t.is(new negapi.MediaTypeSet([ogg, otherQuoted]).select('text/x-other-quoted;spaces="  "'), null);
 		t.end();
 	});
 
@@ -136,9 +140,9 @@ tap.test('MediaTypeSet#select', function (t) {
 	});
 
 	t.test('compares parameters order-independently', function (t) {
-		t.is(new negapi.MediaTypeSet([text, foo]).select('text/x-foo; a=a; b=b; c=c'), foo);
-		t.is(new negapi.MediaTypeSet([text, foo]).select('text/x-foo; a=a; c=c; b=b'), foo);
-		t.is(new negapi.MediaTypeSet([text, foo]).select('text/x-foo; c=c; b=b; a=a'), foo);
+		t.is(new negapi.MediaTypeSet([text, foo]).select('text/x-foo; a=a ; b=b; c=c'), foo);
+		t.is(new negapi.MediaTypeSet([text, foo]).select('text/x-foo; a=a ; c=c; b=b'), foo);
+		t.is(new negapi.MediaTypeSet([text, foo]).select('text/x-foo; c=c ; b=b; a=a'), foo);
 		t.end();
 	});
 
@@ -177,24 +181,33 @@ tap.test('MediaTypeSet#select', function (t) {
 
 	t.test('treats malformed headers as empty', function (t) {
 		t.is(new negapi.MediaTypeSet([text]).select('audio'), text);
+		t.is(new negapi.MediaTypeSet([text]).select('audio/'), text);
+		t.is(new negapi.MediaTypeSet([text]).select('audio//'), text);
 		t.is(new negapi.MediaTypeSet([text]).select('*/ogg'), text);
+		t.is(new negapi.MediaTypeSet([text]).select('audio/ogg;'), text);
+		t.is(new negapi.MediaTypeSet([text]).select('audio/ogg;;'), text);
+		t.is(new negapi.MediaTypeSet([text]).select('audio/ogg;valueless'), text);
 		t.is(new negapi.MediaTypeSet([text]).select('audio/ogg;valueless;q=0.5'), text);
+		t.is(new negapi.MediaTypeSet([text]).select('audio/ogg;valueless='), text);
+		t.is(new negapi.MediaTypeSet([text]).select('audio/ogg;valueless=;q=0.5'), text);
+
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;q=1.5'), text);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;q=one.five'), text);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;q=-1'), text);
+
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;foo="'), text);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;foo="foo'), text);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;foo="\\'), text);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;foo="\\"'), text);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;foo="\v'), text);
+
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json audio/ogg'), text);
+
 		t.end();
 	});
 
-	t.test('is lenient with weights', function (t) {
-		t.is(new negapi.MediaTypeSet([ogg, json]).select('application/json;q=1.5'), json);
-		t.is(new negapi.MediaTypeSet([ogg, json]).select('application/json;q=one.five'), json);
-		t.is(new negapi.MediaTypeSet([ogg, json]).select('application/json;q=-1'), json);
-		t.end();
-	});
-
-	t.test('is lenient with duplicate parameters with the same value', function (t) {
-		t.is(new negapi.MediaTypeSet([ogg, text]).select('text/plain;format=flowed;format=flowed'), text);
-		t.end();
-	});
-
-	t.test('treats duplicate parameters with different values as invalid', function (t) {
+	t.test('treats duplicate parameters as invalid', function (t) {
+		t.is(new negapi.MediaTypeSet([ogg, text]).select('text/plain;format=flowed;format=flowed'), ogg);
 		t.is(new negapi.MediaTypeSet([ogg, text]).select('text/plain;format=flowed;format=other'), ogg);
 		t.is(new negapi.MediaTypeSet([ogg, text]).select('text/plain;format=other;format=flowed'), ogg);
 		t.end();
@@ -202,6 +215,15 @@ tap.test('MediaTypeSet#select', function (t) {
 
 	t.test('is lenient with badly-concatenated lists', function (t) {
 		t.is(new negapi.MediaTypeSet([text, json]).select('application/json,,text/plain;q=0'), json);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json,'), json);
+		t.is(new negapi.MediaTypeSet([text, json]).select(',application/json'), json);
+		t.is(new negapi.MediaTypeSet([text, json]).select(','), text);
+		t.end();
+	});
+
+	t.test('ignores trailing whitespace not removed by Node’s HTTP parser', function (t) {
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json '), json);
+		t.is(new negapi.MediaTypeSet([text, json]).select('application/json;foo="\\"foo\\"" '), json);
 		t.end();
 	});
 
@@ -209,6 +231,21 @@ tap.test('MediaTypeSet#select', function (t) {
 		t.throws(function () {
 			new negapi.MediaTypeSet([text]).select(5);
 		}, TypeError);
+		t.end();
+	});
+
+	t.test('detects when too many parameters are passed', function (t) {
+		t.throws(function () {
+			var parameters = {};
+
+			for (var i = 0; i < 32; i++) {
+				parameters[i + 32] = String(i);
+			}
+
+			void new negapi.MediaTypeSet([
+				new negapi.MediaType('text', 'plain', parameters),
+			]);
+		}, {constructor: RangeError, message: 'Parameter count must be less than 32'});
 		t.end();
 	});
 
