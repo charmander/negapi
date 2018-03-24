@@ -51,7 +51,7 @@ Gets the lowercase value of a parameter by name, or `null` if the parameter does
 
 Creates a set of media types. `types` is an array of `MediaType`s ordered by descending preference.
 
-### `MediaTypeSet#select(accept)`
+#### `MediaTypeSet#select(accept)`
 
 Selects the most client-preferred `MediaType` of the `MediaTypeSet` according to the provided `Accept` header, or `null` if no type is acceptable.
 
