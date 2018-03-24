@@ -1,65 +1,56 @@
 'use strict';
 
-var MediaRange = require('./media-range');
+const MediaRange = require('./media-range');
 
-var _isTokenChar = [];
-var _isQuotedText = [];
-var qvaluePattern = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/;
+const _isTokenChar = [];
+const _isQuotedText = [];
+const qvaluePattern = /^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/;
 
-(function () {
-	var i;
-
-	// "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
-	for (i = 0; i < 127; i++) {
-		_isTokenChar.push(/[!#$%&'*+\-.^_`|~0-9A-Za-z]/.test(String.fromCharCode(i)));
-	}
-
-	// qdtext = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
-	// obs-text = %x80-FF
-	for (i = 0; i < 256; i++) {
-		_isQuotedText.push(/[\t\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]/.test(String.fromCharCode(i)));
-	}
-})();
-
-function isTokenChar(c) {
-	return c < 127 && _isTokenChar[c];
+// "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
+for (let i = 0; i < 127; i++) {
+	_isTokenChar.push(/[!#$%&'*+\-.^_`|~0-9A-Za-z]/.test(String.fromCharCode(i)));
 }
 
-function isOptionalWhitespace(c) {
-	return c === 32 || c === 9;
+// qdtext = HTAB / SP / %x21 / %x23-5B / %x5D-7E / obs-text
+// obs-text = %x80-FF
+for (let i = 0; i < 256; i++) {
+	_isQuotedText.push(/[\t\x20\x21\x23-\x5b\x5d-\x7e\x80-\xff]/.test(String.fromCharCode(i)));
 }
 
-function isQuotedText(c) {
-	return c < 256 && _isQuotedText[c];
-}
+const isTokenChar = c =>
+	c < 127 && _isTokenChar[c];
 
-function isQuotedPair(c) {
+const isOptionalWhitespace = c =>
+	c === 32 || c === 9;
+
+const isQuotedText = c =>
+	c < 256 && _isQuotedText[c];
+
+const isQuotedPair = c =>
 	// HTAB / SP / VCHAR / obs-text
-	return (' ' <= c && c <= '\xff' && c !== '\x7f') || c === '\t';
-}
+	(' ' <= c && c <= '\xff' && c !== '\x7f') || c === '\t';
 
-function parseQvalue(value) {
-	return qvaluePattern.test(value) ?
+const parseQvalue = value =>
+	qvaluePattern.test(value) ?
 		parseFloat(value) :
 		null;
-}
 
-function parseAccept(header) {
+const parseAccept = header => {
 	if (header === '') {
 		return [];
 	}
 
-	var i = 0;
-	var ranges = [];
-	var l = header.length;
-	var c = header.charCodeAt(0);
+	const ranges = [];
+	const l = header.length;
+	let i = 0;
+	let c = header.charCodeAt(0);
 
 	readMediaRange: for (;;) {
-		var type;
-		var subtype;
-		var parameters = new Map();
-		var parameterCount = 0;
-		var weight = 1;
+		let type;
+		let subtype;
+		const parameters = new Map();
+		let parameterCount = 0;
+		let weight = 1;
 
 		// Skip commas as necessary to satisfy RFC 7230
 		// “For compatibility with legacy list rules, a recipient MUST parse and ignore a reasonable number of empty list elements”
@@ -83,7 +74,7 @@ function parseAccept(header) {
 			i += 3;
 		} else if (isTokenChar(c)) {
 			// Parse a type
-			var typeStart = i;
+			const typeStart = i;
 
 			while (++i < l && isTokenChar((c = header.charCodeAt(i)))) {}
 
@@ -104,7 +95,7 @@ function parseAccept(header) {
 				i++;
 			} else if (isTokenChar(c)) {
 				// Parse a subtype
-				var subtypeStart = i;
+				const subtypeStart = i;
 
 				while (++i < l && isTokenChar(header.charCodeAt(i))) {}
 
@@ -135,7 +126,7 @@ function parseAccept(header) {
 		}
 
 		if (c === 59) {  // ;
-			var mediaRangeParameters = true;
+			let mediaRangeParameters = true;
 
 			do {
 				// Skip optional whitespace
@@ -150,7 +141,7 @@ function parseAccept(header) {
 					return null;
 				}
 
-				var nameStart = i;
+				const nameStart = i;
 
 				while (++i < l && isTokenChar((c = header.charCodeAt(i)))) {}
 
@@ -158,8 +149,8 @@ function parseAccept(header) {
 					return null;
 				}
 
-				var name = header.substring(nameStart, i);
-				var value;
+				let name = header.substring(nameStart, i);
+				let value;
 
 				if (++i === l) {
 					return null;
@@ -176,7 +167,7 @@ function parseAccept(header) {
 					value = '';
 
 					for (;;) {
-						var quotedFragmentStart = i;
+						const quotedFragmentStart = i;
 
 						while (isQuotedText((c = header.charCodeAt(i)))) {
 							if (++i === l) {
@@ -190,7 +181,7 @@ function parseAccept(header) {
 							break;
 						} else if (c === 92) {  // \
 							value += header.substring(quotedFragmentStart, i);
-							var charString;
+							let charString;
 
 							if (++i === l || !isQuotedPair((charString = header.charAt(i)))) {
 								return null;
@@ -207,7 +198,7 @@ function parseAccept(header) {
 					}
 				} else if (isTokenChar(c)) {
 					// Parse an unquoted value
-					var unquotedValueStart = i;
+					const unquotedValueStart = i;
 
 					while (++i < l && isTokenChar((c = header.charCodeAt(i)))) {}
 
@@ -271,6 +262,6 @@ function parseAccept(header) {
 	}
 
 	return ranges;
-}
+};
 
 module.exports = parseAccept;

@@ -1,25 +1,22 @@
 'use strict';
 
-var parseAccept = require('./parse-accept');
+const parseAccept = require('./parse-accept');
 
-function getName(parameter) {
-	return parameter.name;
-}
+const getName = parameter =>
+	parameter.name;
 
-function byUniqueName(a, b) {
-	return a.name < b.name ? -1 : 1;
-}
+const byUniqueName = (a, b) =>
+	a.name < b.name ? -1 : 1;
 
-function byReverseSpecificity(a, b) {
-	return b.specificity - a.specificity;
-}
+const byReverseSpecificity = (a, b) =>
+	b.specificity - a.specificity;
 
-function mergeSortedSet(a, b) {
-	var result = [];
-	var ai = 0;
-	var bi = 0;
-	var ac = a[0];
-	var bc = b[0];
+const mergeSortedSet = (a, b) => {
+	const result = [];
+	let ai = 0;
+	let bi = 0;
+	let ac = a[0];
+	let bc = b[0];
 
 	while (ai < a.length && bi < b.length) {
 		if (ac < bc) {
@@ -46,85 +43,76 @@ function mergeSortedSet(a, b) {
 	}
 
 	return result;
-}
+};
 
-function MediaType(type, subtype, parameters) {
-	var parameterList = [];
-	var parameterMap = new Map();
+class MediaType {
+	constructor(type, subtype, parameters) {
+		const parameterList = [];
+		const parameterMap = new Map();
 
-	for (var name in parameters) {
-		var parameter = {
-			name: name.toLowerCase(),
-			value: parameters[name].toLowerCase(),
-		};
+		for (const name in parameters) {
+			const parameter = {
+				name: name.toLowerCase(),
+				value: parameters[name].toLowerCase(),
+			};
 
-		parameterList.push(parameter);
-		parameterMap.set(parameter.name, parameter.value);
+			parameterList.push(parameter);
+			parameterMap.set(parameter.name, parameter.value);
+		}
+
+		Object.defineProperty(this, 'type', {
+			configurable: true,
+			value: type.toLowerCase(),
+		});
+
+		Object.defineProperty(this, 'subtype', {
+			configurable: true,
+			value: subtype.toLowerCase(),
+		});
+
+		Object.defineProperty(this, 'parameters', {
+			configurable: true,
+			value: parameterList,
+		});
+
+		Object.defineProperty(this, '_parameterMap', {
+			configurable: true,
+			value: parameterMap,
+		});
 	}
 
-	Object.defineProperty(this, 'type', {
-		configurable: true,
-		value: type.toLowerCase(),
-	});
-
-	Object.defineProperty(this, 'subtype', {
-		configurable: true,
-		value: subtype.toLowerCase(),
-	});
-
-	Object.defineProperty(this, 'parameters', {
-		configurable: true,
-		value: parameterList,
-	});
-
-	Object.defineProperty(this, '_parameterMap', {
-		configurable: true,
-		value: parameterMap,
-	});
+	get(name) {
+		return this._parameterMap.get(name.toLowerCase());
+	}
 }
 
-Object.defineProperty(MediaType.prototype, 'get', {
-	configurable: true,
-	writable: true,
-	value: function (name) {
-		var value = this._parameterMap.get(name.toLowerCase());
+class MediaTypeSet {
+	constructor(types) {
+		this._ranges = new Map();
+		this._sortedParameterNames = [];
+		this._parameterNames = new Set();
+		this.types = [];
+		types.forEach(this.append, this);
+	}
 
-		return value === undefined ?
-			null :
-			value;
-	},
-});
-
-function MediaTypeSet(types) {
-	this._ranges = new Map();
-	this._sortedParameterNames = [];
-	this._parameterNames = new Set();
-	this.types = [];
-	types.forEach(this.append, this);
-}
-
-Object.defineProperty(MediaTypeSet.prototype, 'append', {
-	configurable: true,
-	writable: true,
-	value: function (mediaType) {
-		var type = mediaType.type;
-		var subtype = mediaType.subtype;
-		var parameters = mediaType.parameters.slice().sort(byUniqueName);
-		var ranges = this._ranges;
+	append(mediaType) {
+		let {type, subtype} = mediaType;
+		const parameters = mediaType.parameters.slice().sort(byUniqueName);
+		const ranges = this._ranges;
 
 		if (parameters.length >= 32) {
 			throw new RangeError('Parameter count must be less than 32');
 		}
 
-		var subsetCount = 1 << parameters.length;
+		const subsetCount = 1 << parameters.length;
 
-		for (var s = 0; s < 3; s++) {
-			for (var i = 0; i < subsetCount; i++) {
-				var key = type + '\0' + subtype;
+		for (let s = 0; s < 3; s++) {
+			for (let i = 0; i < subsetCount; i++) {
+				let key = type + '\0' + subtype;
 
-				for (var b = 0; b < parameters.length; b++) {
+				for (let b = 0; b < parameters.length; b++) {
 					if (i & (1 << b)) {
-						var parameter = parameters[b];
+						const parameter = parameters[b];
 						key += '\0' + parameter.name + '\0' + parameter.value;
 					}
 				}
@@ -143,7 +131,7 @@ Object.defineProperty(MediaTypeSet.prototype, 'append', {
 			}
 		}
 
-		var parameterNames = parameters.map(getName);
+		const parameterNames = parameters.map(getName);
 
 		this.types.push(mediaType);
 		this._sortedParameterNames = mergeSortedSet(
@@ -151,24 +139,20 @@ Object.defineProperty(MediaTypeSet.prototype, 'append', {
 			parameterNames
 		);
 
-		parameterNames.forEach(function (parameterName) {
-			this.add(parameterName);
-		}, this._parameterNames);
-	},
-});
+		parameterNames.forEach(parameterName => {
+			this._parameterNames.add(parameterName);
+		});
+	}
 
-Object.defineProperty(MediaTypeSet.prototype, 'matches', {
-	configurable: true,
-	writable: true,
-	value: function (range) {
-		var setParameterNameList = this._sortedParameterNames;
+	matches(range) {
+		const setParameterNameList = this._sortedParameterNames;
 
 		if (range.parameterCount > setParameterNameList.length) {
 			return [];
 		}
 
-		var parameters = range.parameters;
-		var setParameterNames = this._parameterNames;
+		const parameters = range.parameters;
+		const setParameterNames = this._parameterNames;
 
 		for (const rangeName of parameters.keys()) {
 			if (!setParameterNames.has(rangeName)) {
@@ -176,10 +160,10 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 			}
 		}
 
-		var key = range.type + '\0' + range.subtype;
+		let key = range.type + '\0' + range.subtype;
 
-		for (var i = 0; i < setParameterNameList.length; i++) {
-			var setName = setParameterNameList[i];
+		for (let i = 0; i < setParameterNameList.length; i++) {
+			const setName = setParameterNameList[i];
 
 			if (parameters.has(setName)) {
 				key += '\0' + setName + '\0' + parameters.get(setName);
@@ -187,14 +171,10 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 		}
 
 		return this._ranges.get(key) || [];
-	},
-});
+	}
 
-Object.defineProperty(MediaTypeSet.prototype, 'select', {
-	configurable: true,
-	writable: true,
-	value: function (accept) {
-		var types = this.types;
+	select(accept) {
+		const types = this.types;
 
 		if (accept == null) {
 			return types[0];
@@ -204,7 +184,7 @@ Object.defineProperty(MediaTypeSet.prototype, 'select', {
 			throw new TypeError('Accept header must be a string, null, or undefined');
 		}
 
-		var ranges = parseAccept(accept);
+		const ranges = parseAccept(accept);
 
 		if (ranges === null || ranges.length === 0) {
 			return types[0];
@@ -212,15 +192,14 @@ Object.defineProperty(MediaTypeSet.prototype, 'select', {
 
 		ranges.sort(byReverseSpecificity);
 
-		var weights = new Map();
-		var i;
+		const weights = new Map();
 
-		for (i = 0; i < ranges.length; i++) {
-			var range = ranges[i];
-			var matches = this.matches(range);
+		for (let i = 0; i < ranges.length; i++) {
+			const range = ranges[i];
+			const matches = this.matches(range);
 
-			for (var j = 0; j < matches.length; j++) {
-				var match = matches[j];
+			for (let j = 0; j < matches.length; j++) {
+				const match = matches[j];
 
 				if (!weights.has(match)) {
 					weights.set(match, range.weight);
@@ -228,12 +207,12 @@ Object.defineProperty(MediaTypeSet.prototype, 'select', {
 			}
 		}
 
-		var best = null;
-		var bestWeight = 0;
+		let best = null;
+		let bestWeight = 0;
 
-		for (i = 0; i < types.length; i++) {
-			var type = types[i];
-			var weight = weights.get(type);
+		for (let i = 0; i < types.length; i++) {
+			const type = types[i];
+			const weight = weights.get(type);
 
 			if (weight > bestWeight) {
 				best = type;
@@ -242,8 +221,10 @@ Object.defineProperty(MediaTypeSet.prototype, 'select', {
 		}
 
 		return best;
-	},
-});
+	}
+}
 
-exports.MediaType = MediaType;
-exports.MediaTypeSet = MediaTypeSet;
+module.exports = {
+	MediaType,
+	MediaTypeSet,
+};

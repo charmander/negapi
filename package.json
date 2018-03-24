@@ -1,6 +1,6 @@
 {
 	"name": "negapi",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"description": "content type negotiation",
 	"keywords": ["http", "content negotiation", "accept"],
 	"bugs": {
@@ -22,5 +22,8 @@
 	"devDependencies": {
 		"@charmander/eslint-config-base": "1.0.2",
 		"tap": "^11.0.1"
+	},
+	"engines": {
+		"node": ">=6.0.0"
 	}
 }
