@@ -16,6 +16,9 @@
 		"type": "git",
 		"url": "https://github.com/charmander/negapi"
 	},
+	"scripts": {
+		"test": "tap test"
+	},
 	"devDependencies": {
 		"tap": "10.7.2"
 	}
