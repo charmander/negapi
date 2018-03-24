@@ -50,7 +50,7 @@ function mergeSortedSet(a, b) {
 
 function MediaType(type, subtype, parameters) {
 	var parameterList = [];
-	var parameterMap = Object.create(null);
+	var parameterMap = new Map();
 
 	for (var name in parameters) {
 		var parameter = {
@@ -59,7 +59,7 @@ function MediaType(type, subtype, parameters) {
 		};
 
 		parameterList.push(parameter);
-		parameterMap[parameter.name] = parameter.value;
+		parameterMap.set(parameter.name, parameter.value);
 	}
 
 	Object.defineProperty(this, 'type', {
@@ -87,7 +87,7 @@ Object.defineProperty(MediaType.prototype, 'get', {
 	configurable: true,
 	writable: true,
 	value: function (name) {
-		var value = this._parameterMap[name.toLowerCase()];
+		var value = this._parameterMap.get(name.toLowerCase());
 
 		return value === undefined ?
 			null :
@@ -96,9 +96,9 @@ Object.defineProperty(MediaType.prototype, 'get', {
 });
 
 function MediaTypeSet(types) {
-	this._ranges = Object.create(null);
+	this._ranges = new Map();
 	this._sortedParameterNames = [];
-	this._parameterNames = Object.create(null);
+	this._parameterNames = new Set();
 	this.types = [];
 	types.forEach(this.append, this);
 }
@@ -129,10 +129,10 @@ Object.defineProperty(MediaTypeSet.prototype, 'append', {
 					}
 				}
 
-				if (key in ranges) {
-					ranges[key].push(mediaType);
+				if (ranges.has(key)) {
+					ranges.get(key).push(mediaType);
 				} else {
-					ranges[key] = [mediaType];
+					ranges.set(key, [mediaType]);
 				}
 			}
 
@@ -152,7 +152,7 @@ Object.defineProperty(MediaTypeSet.prototype, 'append', {
 		);
 
 		parameterNames.forEach(function (parameterName) {
-			this[parameterName] = true;
+			this.add(parameterName);
 		}, this._parameterNames);
 	},
 });
@@ -170,8 +170,8 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 		var parameters = range.parameters;
 		var setParameterNames = this._parameterNames;
 
-		for (var rangeName in parameters) {
-			if (!(rangeName in setParameterNames)) {
+		for (const rangeName of parameters.keys()) {
+			if (!setParameterNames.has(rangeName)) {
 				return [];
 			}
 		}
@@ -181,12 +181,12 @@ Object.defineProperty(MediaTypeSet.prototype, 'matches', {
 		for (var i = 0; i < setParameterNameList.length; i++) {
 			var setName = setParameterNameList[i];
 
-			if (setName in parameters) {
-				key += '\0' + setName + '\0' + parameters[setName];
+			if (parameters.has(setName)) {
+				key += '\0' + setName + '\0' + parameters.get(setName);
 			}
 		}
 
-		return this._ranges[key] || [];
+		return this._ranges.get(key) || [];
 	},
 });
 

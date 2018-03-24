@@ -57,7 +57,7 @@ function parseAccept(header) {
 	readMediaRange: for (;;) {
 		var type;
 		var subtype;
-		var parameters = Object.create(null);
+		var parameters = new Map();
 		var parameterCount = 0;
 		var weight = 1;
 
@@ -228,11 +228,11 @@ function parseAccept(header) {
 					} else {
 						name = name.toLowerCase();
 
-						if (name in parameters) {
+						if (parameters.has(name)) {
 							return null;
 						}
 
-						parameters[name] = value.toLowerCase();
+						parameters.set(name, value.toLowerCase());
 						parameterCount++;
 					}
 				}
