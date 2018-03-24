@@ -20,6 +20,7 @@
 		"test": "tap test"
 	},
 	"devDependencies": {
-		"tap": "10.7.2"
+		"@charmander/eslint-config-base": "1.0.2",
+		"tap": "^11.0.1"
 	}
 }

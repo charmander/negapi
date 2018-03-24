@@ -1,0 +1,13 @@
+{
+	"parserOptions": {
+		"ecmaVersion": "5"
+	},
+	"extends": "@charmander/base",
+	"env": {
+		"node": true
+	},
+	"rules": {
+		"no-empty": "off",
+		"no-extra-parens": "off"
+	}
+}
