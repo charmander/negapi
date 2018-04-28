@@ -2,7 +2,11 @@
 	"name": "negapi",
 	"version": "3.0.0",
 	"description": "content type negotiation",
-	"keywords": ["http", "content negotiation", "accept"],
+	"keywords": [
+		"http",
+		"content negotiation",
+		"accept"
+	],
 	"bugs": {
 		"url": "https://github.com/charmander/negapi/issues"
 	},
@@ -17,11 +21,11 @@
 		"url": "https://github.com/charmander/negapi"
 	},
 	"scripts": {
-		"test": "tap test"
+		"test": "node test"
 	},
 	"devDependencies": {
-		"@charmander/eslint-config-base": "1.0.2",
-		"tap": "^11.0.1"
+		"@charmander/eslint-config-base": "1.1.0",
+		"@charmander/test": "0.2.0"
 	},
 	"engines": {
 		"node": ">=6.0.0"
