@@ -10,12 +10,12 @@ Constructing a media type set takes **exponential space and time** on the highes
 ## Usage
 
 ```javascript
-const negapi = require('negapi');
+const {MediaType, MediaTypeSet} = require('negapi');
 
-const types = new negapi.MediaTypeSet([
-	new negapi.MediaType('text', 'plain', { format: 'flowed' }),
-	new negapi.MediaType('application', 'json'),
-	new negapi.MediaType('image', 'png'),
+const types = new MediaTypeSet([
+	new MediaType('text', 'plain', { format: 'flowed' }),
+	new MediaType('application', 'json'),
+	new MediaType('image', 'png'),
 ]);
 
 const image = types.select('image/*, */*;q=0.5');
