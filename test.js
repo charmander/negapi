@@ -204,13 +204,13 @@ describe('MediaTypeSet#select', it => {
 		assert.throws(() => {
 			const parameters = {};
 
-			for (let i = 0; i < 32; i++) {
+			for (let i = 0; i < 31; i++) {
 				parameters[i + 32] = String(i);
 			}
 
 			void new MediaTypeSet([
 				new MediaType('text', 'plain', parameters),
 			]);
-		}, /^RangeError: Parameter count must be less than 32$/);
+		}, /^RangeError: Parameter count must be less than 31$/);
 	});
 });

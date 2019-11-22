@@ -100,8 +100,8 @@ class MediaTypeSet {
 		const parameters = mediaType.parameters.slice().sort(byUniqueName);
 		const ranges = this._ranges;
 
-		if (parameters.length >= 32) {
-			throw new RangeError('Parameter count must be less than 32');
+		if (parameters.length >= 31) {
+			throw new RangeError('Parameter count must be less than 31');
 		}
 
 		const subsetCount = 1 << parameters.length;
