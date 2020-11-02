@@ -1,7 +1,5 @@
 # negapi
 
-[![Build status][ci image]][ci]
-
 negapi helps with content negotiation by selecting the most appropriate media type for a response based on a request’s Accept header.
 
 Constructing a media type set takes **exponential space and time** on the highest number of parameters for a type. That number is typically 0, but if something significantly larger is required, this module may not be a good choice. Matching an Accept header against the set takes O(*n* log *n* + *kn*) time, where *n* is the number of ranges in the header and *k* is the number of distinct parameter names in the type set.
@@ -54,7 +52,3 @@ Creates a set of media types. `types` is an array of `MediaType`s ordered by des
 #### `MediaTypeSet#select(accept)`
 
 Selects the most client-preferred `MediaType` of the `MediaTypeSet` according to the provided `Accept` header, or `null` if no type is acceptable.
-
-
-  [ci]: https://travis-ci.org/charmander/negapi
-  [ci image]: https://api.travis-ci.org/charmander/negapi.svg
