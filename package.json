@@ -24,7 +24,7 @@
 		"test": "node test"
 	},
 	"devDependencies": {
-		"@charmander/eslint-config-base": "1.1.0",
+		"@charmander/eslint-config-base": "1.2.0",
 		"@charmander/test": "0.2.0"
 	},
 	"engines": {

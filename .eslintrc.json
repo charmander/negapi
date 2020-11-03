@@ -5,7 +5,6 @@
 	},
 	"rules": {
 		"no-empty": "off",
-		"no-extra-parens": "off",
-		"no-var": "error"
+		"no-extra-parens": "off"
 	}
 }
